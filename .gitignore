@@ -1,3 +1,6 @@
+__pycache__
 pyquad/__pycache__
 quadcopter_animation/__pycache__
-datasets/
+neural_networks/*
+datasets/*
+*.mp4
