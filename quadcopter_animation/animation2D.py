@@ -45,6 +45,7 @@ def nothing(x):
     pass
     
 def animate(*trajectories):
+    global img_size, scale
     window_name = "2D Quadcopter"        
     draw_path = False
     recording = False
@@ -54,19 +55,22 @@ def animate(*trajectories):
     
     # videowriter
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    maxT = np.max([traj['t'][-1] for traj in trajectories])
     writer = cv2.VideoWriter('output.mp4', fourcc, 100, (img_size, img_size))
     
     cv2.namedWindow(window_name)
     cv2.createTrackbar('t', window_name, 0, 1000, nothing)
     
-    maxT = np.max([traj['t'][-1] for traj in trajectories])
+    
     
     def get_time_from_trackbar():
         idx = cv2.getTrackbarPos('t', window_name)
         return idx * maxT / 1000.0
     
     while True:
-        if real_time:
+        if recording:
+            t += 0.01
+        elif real_time:
             # get index based on time
             t = time.time() - t0
         else:
@@ -114,6 +118,12 @@ def animate(*trajectories):
         # show path if 'p' is pressed
         if key == ord('p'):
             draw_path = not draw_path
+        # zoom in if '1' is pressed
+        if key == ord('1'):
+            scale *= 1.1
+        # zoom out if '2' is pressed
+        if key == ord('2'):
+            scale /= 1.1
         # real time if space bar is pressed
         if key == 32:
             # toggle
@@ -128,7 +138,7 @@ def animate(*trajectories):
         cv2.putText(image, "Press 'r' to start recording", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
         cv2.putText(image, "Press 'p' to show path", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
         cv2.putText(image, "Press 'space' for real time", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-
+        cv2.putText(image, "Press 1 or 2 to zoom in and out", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
         # Show the image in the OpenCV window
         cv2.imshow(window_name, image)
     
