@@ -9,3 +9,4 @@ End-to-end optimal quadcopter control through Supervised Learning
 9) **Minimum Snap trajectories:** used to compute the minimum snap polynomial trajectories and convert it into C code
 
 Note that in order to run the Dataset Generation notebook, AMPL (A Mathematical Programming Language) needs to be installed as well as the NLP solver SNOPT.
+# Drone
