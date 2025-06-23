@@ -13,11 +13,13 @@ def Quantize_w(k):
 				out = torch.sign(input)
 			else:
 				maxW = torch.max(abs(input))
-				out = input / maxW
+				# out = input / maxW
+				out = torch.clamp(input, -maxW, maxW)  # ensure symmetry
 				n = pow(2,k-1)
-				out = torch.round(out * n) / n
-				out = torch.clamp(out, -1, 1-1./n) * maxW
-				
+				out = torch.round(out*n )
+				out = torch.clamp(out, -n, n-1) *maxW
+				out =  torch.round(out)
+			# print(out)	
 			return out
 
 		@staticmethod
@@ -38,15 +40,14 @@ def Quantize_a(k):
 				out = torch.sign(input)
 			else:
 				n = pow(2,k-1)
-				out = torch.round(input * n) / n
-				out = torch.clamp(out, -1, 1-1./n)
+				out = torch.round(input * n) 
+				out = torch.clamp(out, -n, n-1)
 			return out
 
 		@staticmethod
 		def backward(self, grad_output):
 			grad_input = grad_output.clone()
 			return grad_input
-
 	return qfn().apply
 
 class QLinear(nn.Linear):
@@ -65,9 +66,11 @@ class QLinear(nn.Linear):
 		self.weight.data=self.quant_w(self.weight.org)
 		out = nn.functional.linear(input, self.weight)
 		if not self.bias is None:
-			self.bias.org=self.bias.data.clone()
-			out += self.bias.view(1, -1).expand_as(out)
-
+			self.bias.org=self.bias.data.clone() #(self.abits*self.wbits)*
+			quant_a1 = Quantize_w(k=self.abits)  # returns a function
+			bias1 = quant_a1(self.bias.org*5)      # apply the function to the data
+			out += bias1.view(1, -1).expand_as(out)
+		print(torch.max(out))
 		return out
 
 class QConv2d(nn.Conv2d):

@@ -126,109 +126,71 @@ def adjust_learning_rate(optimizer, epoch, lr):
 	return new_lr
 
 
+
 if __name__ == '__main__':
-	if not os.path.exists('trained_models'):
-		os.makedirs('trained_models')
-	
-	cudnn.benchmark = True
-	
-	# Parse arguments
-	args = parser.parse_args()
-	
-	######################################
-	##              Datasets            ##
-	######################################
-	train_set = datasets.MNIST(
-		root= '../datasets/',
-		train=True,
-		download=True,
-		transform=transforms.Compose([
-			transforms.RandomRotation(10),
-			transforms.RandomCrop(28, padding=4),
-			transforms.ToTensor(),
-			transforms.Normalize((0.1307,), (0.3081,))
-		])
-	)
+    if not os.path.exists('trained_models'):
+        os.makedirs('trained_models')
 
-	val_set = datasets.MNIST(
-		root= '../datasets/',
-		train=False,
-		download=True,
-		transform=transforms.Compose([
-			transforms.ToTensor(),
-			transforms.Normalize((0.1307,), (0.3081,))    
-		])
-	)
+    cudnn.benchmark = True
 
-	Params = namedtuple('Params',['lr','batch_size','number_workers'])
-	params = Params( args.learning_rate, args.batch_size, args.number_workers)
+    # Parse arguments
+    args = parser.parse_args()
 
-	######################################
-	##            Dataloaders           ##
-	######################################
-	train_loader = torch.utils.data.DataLoader(
-		train_set,
-		batch_size=args.batch_size,
-		shuffle=True,
-		num_workers=args.number_workers,
-		pin_memory=True
-	)
-	val_loader = torch.utils.data.DataLoader(
-		val_set,
-		batch_size=args.batch_size,
-		shuffle=False,
-		num_workers=args.number_workers,
-		pin_memory=True
-	)
+    # Set up datasets
+    val_set = datasets.MNIST(
+        root='../datasets/',
+        train=False,
+        download=True,
+        transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+    )
 
-	# Network model
-	network = LeNet_5(wbits=args.wbits, abits=args.abits).cuda()
+    Params = namedtuple('Params', ['lr', 'batch_size', 'number_workers'])
+    params = Params(args.learning_rate, args.batch_size, args.number_workers)
 
-	# Optimizer
-	if args.optimizer.lower() == 'adam':
-		optimizer = optim.Adam(network.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-	elif args.optimizer.lower() == 'sgd':
-		optimizer = optim.SGD(network.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
-	else:
-		print('Invalid optimizer (use Adam or SGD)')
-		exit()
+    # Dataloader
+    val_loader = torch.utils.data.DataLoader(
+        val_set,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.number_workers,
+        pin_memory=True
+    )
 
-	#Loss function
-	criterion = torch.nn.CrossEntropyLoss().cuda()
+    # Initialize model
+    network = LeNet_5(wbits=args.wbits, abits=args.abits).cuda()
 
-	args.networkCfg = f'MNIST.LeNet-5.QNN.W{args.wbits}.A{args.abits}.G32.{args.optimizer}.LR{args.learning_rate}'
-	
-	# Resume training
-	if args.load_checkpoint:
-		checkpoint = torch.load(f'trained_models/{args.networkCfg}.checkpoint.pth.tar')
-		network.load_state_dict(checkpoint['network_state_dict'])
-		optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-		start_epoch = checkpoint['epoch']	# Training will start in epoch+1
-		best_acc = checkpoint['accuracy']
-		lr = checkpoint['learning_rate']
-	else:
-		lr=args.learning_rate
-		start_epoch=0       # Training will start in 0+1
-		best_acc = 0.0
+    # Optimizer (not used for testing but needed to load checkpoint)
+    if args.optimizer.lower() == 'adam':
+        optimizer = optim.Adam(network.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == 'sgd':
+        optimizer = optim.SGD(network.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
+    else:
+        print('Invalid optimizer (use Adam or SGD)')
+        exit()
 
-	trainManager = RunManager(f'{args.networkCfg}.Train', 'Train')
-	validationManager = RunManager(f'{args.networkCfg}.Validation', 'Validation')
+    # Loss function
+    criterion = torch.nn.CrossEntropyLoss().cuda()
 
-	trainManager.begin_run(params, network, train_loader, criterion, optimizer, start_epoch)
-	validationManager.begin_run(params, network, val_loader, criterion, optimizer, start_epoch)
-	for epoch in range(start_epoch, args.epochs):
-		lr=adjust_learning_rate(optimizer, epoch, lr)
-		trainManager.lr=lr
-		validationManager.lr=lr
-		args.learning_rate = lr
-		train(trainManager)
-		best_acc = val(validationManager, best_acc, args)
-		clear()
-		trainManager.printDF()
-		validationManager.printDF()
-		print(f'Best accuracy: {best_acc*100:.2f}%')
-		
-	trainManager.end_run()
-	validationManager.end_run()
-	renameBestModel(args, best_acc)
+    args.networkCfg = f'MNIST.LeNet-5.QNN.W{args.wbits}.A{args.abits}.G32.{args.optimizer}.LR{args.learning_rate}'
 
+    # Load checkpoint only (no training)
+    if args.load_checkpoint:
+        checkpoint = torch.load(f'trained_models/{args.networkCfg}.checkpoint.pth.tar')
+        network.load_state_dict(checkpoint['network_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        best_acc = checkpoint['accuracy']
+        print(f"Checkpoint loaded: Epoch {checkpoint['epoch']}, Accuracy: {best_acc*100:.2f}%")
+    else:
+        print("No checkpoint found. Set --load_checkpoint to True.")
+        exit()
+
+    # Initialize validation manager and run validation only
+    validationManager = RunManager(f'{args.networkCfg}.Validation', 'Validation')
+    validationManager.begin_run(params, network, val_loader, criterion, optimizer, checkpoint['epoch'])
+    
+    val(validationManager, best_acc, args)
+    
+    validationManager.end_run()
