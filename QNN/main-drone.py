@@ -107,7 +107,7 @@ print(f'Test set prepared: {len(test_trajectories)} trajectories, {len(test_set)
 
 # Load model
 print('Loading model...')
-checkpoint = torch.load('../HOVER_TO_HOVER_NOMINAL1.pt', weights_only=False)
+checkpoint = torch.load('./HOVER_TO_HOVER_NOMINAL1.pt', weights_only=False)
 model = Drone(wbits=args.wbits, abits=args.abits, X_mean=X_mean, X_std=X_std)
 
 state_dict = checkpoint['network_state_dict']
@@ -172,7 +172,7 @@ print('Loading floating-point model...')
 fp_model = DroneFP(X_mean=X_mean, X_std=X_std)
 
 # Load checkpoint
-checkpoint_fp = torch.load('../HOVER_TO_HOVER_NOMINAL1.pt', weights_only=False)
+checkpoint_fp = torch.load('./HOVER_TO_HOVER_NOMINAL1.pt', weights_only=False)
 state_dict_fp = checkpoint_fp['network_state_dict']
 new_state_dict_fp = {}
 key_map = {
