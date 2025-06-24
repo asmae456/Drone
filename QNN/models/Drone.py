@@ -46,13 +46,13 @@ class CustomSigmoid2(nn.Module):
     def forward(self, x):
         x_abs = torch.abs(x)
         # print(torch.max(x))
-        y =  128*( self.abits*self.wbits)/2 + (x_abs)
+        y =  ( self.abits*self.wbits)/2 + (x_abs) * 1/128
         # y = y * 2**5
         # Mirror negative values using sign
-        y = torch.where(x >= 0, y, ( 128*self.abits*self.wbits) - y)
+        y = torch.where(x >= 0, y, ( self.abits*self.wbits) - y)
         # y = x
-        y = torch.clamp(y, 0.0,(128*self.abits*self.wbits))
-        y = y/(128*self.abits*self.wbits)
+        y = torch.clamp(y, 0.0,(self.abits*self.wbits))
+        y = y/(self.abits*self.wbits)
         return y   
 class CustomSigmoid3(nn.Module):
     def __init__(self, abits=4, wbits=4):

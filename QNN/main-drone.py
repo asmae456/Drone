@@ -18,8 +18,8 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 parser = argparse.ArgumentParser(description='Validation Only - Drone Model on Custom Dataset')
 parser.add_argument('-wb', '--wbits', type=int, default=8, help='Bit width to represent weights')
 parser.add_argument('-ab', '--abits', type=int, default=8, help='Bit width to represent input activations')
-parser.add_argument('--checkpoint', type=str, default='/home/aelarrassi/drone/neural_networks/tmp_benchmark_quantized.pt', help='Path to quantized model checkpoint')
-parser.add_argument('--dataset_path', type=str, default='/home/aelarrassi/drone/datasets/HOVER_TO_HOVER_NOMINAL.npz', help='Path to dataset')
+# parser.add_argument('--checkpoint', type=str, default='/home/aelarrassi/drone/neural_networks/tmp_benchmark_quantized.pt', help='Path to quantized model checkpoint')
+parser.add_argument('--dataset_path', type=str, default='./HOVER_TO_HOVER_NOMINAL.npz', help='Path to dataset')
 parser.add_argument('--batch_size', type=int, default=256, help='Batch size for validation')
 args = parser.parse_args()
 
